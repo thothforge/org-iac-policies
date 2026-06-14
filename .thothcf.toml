@@ -1,0 +1,6 @@
+[thothcf]
+project_id = "org-iac-policies"
+project_type = "policy-repository"
+
+[thothcf.governance]
+description = "Organization-wide IaC governance policies"

@@ -1,0 +1,22 @@
+# Default drift tolerance for all projects
+coverage_threshold: 90.0
+
+rules:
+  - resource: "aws_security_group.*"
+    severity_override: critical
+    action: block_deploy
+
+  - resource: "aws_iam_*"
+    severity_override: critical
+    action: block_deploy
+
+  - resource: "aws_kms_key.*"
+    severity_override: high
+    action: alert
+
+  - resource: "aws_instance.*"
+    attribute: "tags.*"
+    action: auto_accept
+
+  - resource: "aws_cloudwatch_log_group.*"
+    action: ignore

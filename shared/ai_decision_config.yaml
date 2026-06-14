@@ -1,0 +1,19 @@
+# Default AI decision thresholds
+approve_thresholds:
+  risk_score_max: 20
+  confidence_min: 0.90
+  critical_issues_max: 0
+  high_issues_max: 0
+  compliance_violations_max: 0
+
+reject_thresholds:
+  risk_score_min: 85
+  confidence_min: 0.85
+  critical_issues_min: 1
+
+safety:
+  max_auto_approvals_per_day: 50
+  max_auto_rejections_per_day: 20
+  cooldown_between_actions: 300
+  emergency_labels: ["emergency", "hotfix", "security-patch"]
+  trusted_bots: ["dependabot", "renovate"]
