@@ -8,67 +8,131 @@ Organization-level policy repository for Infrastructure as Code governance. This
 
 ```
 org-iac-policies/
-├── domains/          # Business domain policies
-├── workloads/        # Workload-type policies (containers, serverless, databases)
-├── layers/           # Infrastructure layer policies (networking, security, observability)
-├── compliance/       # Compliance framework mappings (SOC2, CIS, ISO27001)
-└── shared/           # Policies applied to ALL projects
+├── rules/                        # ThothCTL project structure rules
+│   ├── base.toml                 # All project types (mandatory)
+│   ├── terraform-terragrunt.toml # Terraform+Terragrunt projects
+│   ├── terraform_module.toml     # Terraform modules
+│   └── cdkv2.toml                # CDK v2 projects
+├── shared/policy/                # OPA/Rego policies (all projects)
+│   ├── naming.rego
+│   ├── tagging.rego
+│   └── regions.rego
+├── compliance/
+│   ├── features/                 # Terraform-compliance BDD scenarios
+│   │   ├── encryption.feature
+│   │   ├── tagging.feature
+│   │   └── networking.feature
+│   └── soc2/policy/              # SOC2-specific OPA policies
+├── domains/                      # Business domain policies
+├── workloads/                    # Workload-type policies
+├── layers/                       # Infrastructure layer policies
+└── README.md
 ```
 
 ## Quick Start
 
-### 1. Configure in your Space
+### Set the Environment Variable
 
 ```bash
-thothctl init space --policy-repo https://github.com/your-org/org-iac-policies.git
+export THOTH_ORG_POLICY=https://github.com/thothforge/org-iac-policies.git
 ```
 
-Or set the environment variable:
+### Run All Governance Checks
 
 ```bash
-export THOTH_POLICY_REPO=https://github.com/your-org/org-iac-policies.git
+# Project structure enforcement (mandatory rules cannot be overridden)
+thothctl check project iac --enforcement hard
+
+# OPA/Rego policy scan (shared + domain policies)
+thothctl scan iac -t opa
+
+# BDD compliance scenarios against terraform plans
+thothctl scan iac -t terraform-compliance
+
+# All security scanners + org policies
+thothctl scan iac -t checkov -t trivy -t opa -t terraform-compliance --enforcement hard
 ```
 
-### 2. Declare governance selectors in your project
+## What Each Folder Does
+
+| Folder | Tool | Purpose |
+|--------|------|---------|
+| `rules/` | `thothctl check project iac` | Enforce project structure (files, folders, naming) |
+| `shared/policy/` | `thothctl scan iac -t opa` | OPA/Rego security policies for all projects |
+| `compliance/features/` | `thothctl scan iac -t terraform-compliance` | BDD scenarios against tfplan.json |
+| `domains/*/policy/` | `thothctl scan iac -t opa` | Domain-specific Rego policies |
+| `layers/*/policy/` | `thothctl scan iac -t opa` | Layer-specific Rego policies |
+| `workloads/*/policy/` | `thothctl scan iac -t opa` | Workload-specific Rego policies |
+
+## Project Structure Rules (`rules/`)
+
+Rules enforce that projects follow organizational standards. Projects **cannot override** mandatory rules.
+
+### `rules/base.toml` — All Projects
 
 ```toml
-# .thothcf.toml
-[thothcf]
-project_id = "my-service"
-project_type = "terraform-terragrunt"
+[metadata]
+name = "ThothForge Infrastructure Standards"
+version = "1.0.0"
+enforcement = "mandatory"
 
-[thothcf.governance]
-domain = "platform"
-workload = "containers"
-layer = "networking"
-compliance = ["soc2", "cis-aws"]
+[project_structure]
+root_files = [".gitignore", "README.md", ".thothcf.toml", ".pre-commit-config.yaml"]
+
+[[project_structure.folders]]
+name = "docs"
+mandatory = true
+enforcement = "mandatory"
+
+[rules.naming]
+pattern = "^[a-z][a-z0-9-]*$"
+enforcement = "mandatory"
+
+[rules.tagging]
+required_tags = ["Environment", "Owner", "Project"]
+enforcement = "mandatory"
 ```
 
-### 3. Evaluate policies
+### Enforcement Levels
+
+| Level | Behavior | Can Project Override? |
+|-------|----------|---------------------|
+| `mandatory` | Fails pipeline with `--enforcement hard` | ❌ No |
+| `recommended` | Warning | ⚠️ Can opt-out |
+| `informational` | Report only | ✅ Yes |
+
+## Terraform-compliance Features (`compliance/features/`)
+
+BDD scenarios evaluated against `tfplan.json`:
+
+```gherkin
+Feature: Ensure encryption is enabled for all storage resources
+
+  Scenario: S3 buckets must have encryption
+    Given I have aws_s3_bucket defined
+    Then it must have server_side_encryption_configuration
+```
+
+### Usage
 
 ```bash
-thothctl scan iac --tools opa
-# Evaluates: shared + layer/networking + workload/containers + domain/platform
+# Direct reference with //subpath
+thothctl scan iac -t terraform-compliance -o "features_dir=https://github.com/thothforge/org-iac-policies.git//compliance/features"
+
+# Or via THOTH_ORG_POLICY (auto-discovers compliance/features/)
+export THOTH_ORG_POLICY=https://github.com/thothforge/org-iac-policies.git
+thothctl scan iac -t terraform-compliance
 ```
 
-## Policy Resolution Order
+## OPA/Rego Policies (`shared/policy/`)
 
-1. `shared/policy/*.rego` — Always applied
-2. `layers/<layer>/policy/*.rego` — Matches project layer
-3. `workloads/<workload>/policy/*.rego` — Matches workload type
-4. `domains/<domain>/policy/*.rego` — Matches business domain
-5. `compliance/<framework>/policy/*.rego` — Per compliance framework
-6. Project-local `policy/*.rego` — Project-specific overrides
-
-## Writing Policies
-
-Policies use [OPA Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) language:
+Policies use [OPA Rego](https://www.openpolicyagent.org/docs/latest/policy-language/):
 
 ```rego
 # shared/policy/tagging.rego
 package main
 
-required_tags := {"Environment", "Owner", "CostCenter", "ManagedBy"}
+required_tags := {"Environment", "Owner", "Project"}
 
 deny[msg] {
     resource := input.resource[type][name]
@@ -79,10 +143,55 @@ deny[msg] {
 }
 ```
 
+### Usage
+
+```bash
+# Auto-discovers shared/policy/ from THOTH_ORG_POLICY
+export THOTH_ORG_POLICY=https://github.com/thothforge/org-iac-policies.git
+thothctl scan iac -t opa
+
+# Or explicit
+thothctl scan iac -t opa -o "policy_dir=https://github.com/thothforge/org-iac-policies.git"
+```
+
+## CI/CD Integration
+
+```yaml
+# GitHub Actions
+name: IaC Governance
+
+on: [pull_request]
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    env:
+      THOTH_ORG_POLICY: https://github.com/thothforge/org-iac-policies.git@v1.0
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install thothctl terraform-compliance
+      
+      - name: Project structure check
+        run: thothctl check project iac --enforcement hard
+      
+      - name: Security scan
+        run: thothctl scan iac -t checkov -t trivy -t opa -t terraform-compliance --enforcement hard --post-to-pr
+```
+
+## Policy Resolution Order (OPA)
+
+1. `shared/policy/*.rego` — Always applied
+2. `layers/<layer>/policy/*.rego` — Matches project layer
+3. `workloads/<workload>/policy/*.rego` — Matches workload type
+4. `domains/<domain>/policy/*.rego` — Matches business domain
+5. `compliance/<framework>/policy/*.rego` — Per compliance framework
+
 ## Related
 
-- [ThothCTL Policy as Code Documentation](https://thothforge.github.io/thothctl/framework/policy_as_code/)
-- [OPA/Rego Language Reference](https://www.openpolicyagent.org/docs/latest/policy-reference/)
+- [ThothCTL](https://github.com/thothforge/thothctl)
+- [ThothCTL Scan Docs](https://thothforge.github.io/thothctl/framework/commands/scan/scan_iac/)
+- [OPA/Rego Reference](https://www.openpolicyagent.org/docs/latest/policy-reference/)
+- [Terraform-compliance](https://terraform-compliance.com/)
 - [Conftest](https://www.conftest.dev/)
 
 ## License
