@@ -1,0 +1,33 @@
+# Organization Infrastructure Standards - Base Rules
+# Applies to ALL project types managed by ThothForge
+
+[metadata]
+name = "ThothForge Infrastructure Standards"
+version = "1.0.0"
+enforcement = "mandatory"
+
+[project_structure]
+root_files = [".gitignore", "README.md", ".thothcf.toml", ".pre-commit-config.yaml"]
+ignore_folders = [".git", ".terraform", ".terragrunt-cache", "node_modules", "cdk.out"]
+
+[[project_structure.folders]]
+name = "docs"
+mandatory = true
+enforcement = "mandatory"
+
+[[project_structure.folders]]
+name = "Reports"
+mandatory = false
+enforcement = "informational"
+
+[rules.naming]
+pattern = "^[a-z][a-z0-9-]*$"
+enforcement = "mandatory"
+
+[rules.tagging]
+required_tags = ["Environment", "Owner", "Project"]
+enforcement = "mandatory"
+
+[rules.security]
+public_ingress = "deny"
+enforcement = "mandatory"

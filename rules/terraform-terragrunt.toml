@@ -1,0 +1,17 @@
+# Rules for terraform-terragrunt projects
+# Extends base.toml
+
+[[project_structure.folders]]
+name = "stacks"
+mandatory = true
+enforcement = "mandatory"
+
+[[project_structure.folders]]
+name = "modules"
+mandatory = true
+enforcement = "mandatory"
+
+[[project_structure.folders]]
+name = "common"
+mandatory = true
+enforcement = "recommended"

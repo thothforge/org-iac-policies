@@ -1,0 +1,20 @@
+# Rules for cdkv2 projects
+# Extends base.toml
+
+[project_structure]
+root_files = ["cdk.json", "package.json"]
+
+[[project_structure.folders]]
+name = "lib"
+mandatory = true
+enforcement = "mandatory"
+
+[[project_structure.folders]]
+name = "bin"
+mandatory = true
+enforcement = "mandatory"
+
+[[project_structure.folders]]
+name = "test"
+mandatory = true
+enforcement = "recommended"

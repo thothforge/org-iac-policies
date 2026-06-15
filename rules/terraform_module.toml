@@ -1,0 +1,15 @@
+# Rules for terraform_module projects
+# Extends base.toml
+
+[project_structure]
+root_files = ["main.tf", "variables.tf", "outputs.tf"]
+
+[[project_structure.folders]]
+name = "examples"
+mandatory = true
+enforcement = "recommended"
+
+[[project_structure.folders]]
+name = "tests"
+mandatory = true
+enforcement = "recommended"
