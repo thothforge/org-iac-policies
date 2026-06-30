@@ -14,20 +14,48 @@ org-iac-policies/
 │   ├── terraform_module.toml     # Terraform modules
 │   └── cdkv2.toml                # CDK v2 projects
 ├── shared/policy/                # OPA/Rego policies (all projects)
-│   ├── naming.rego
-│   ├── tagging.rego
-│   └── regions.rego
+│   ├── hcl/                      # Terraform/OpenTofu/HCL input structure
+│   │   ├── naming.rego
+│   │   ├── tagging.rego
+│   │   └── regions.rego
+│   └── cloudformation/           # CloudFormation JSON input structure
+│       ├── naming.rego
+│       ├── tagging.rego
+│       └── regions.rego
 ├── compliance/
 │   ├── features/                 # Terraform-compliance BDD scenarios
 │   │   ├── encryption.feature
 │   │   ├── tagging.feature
 │   │   └── networking.feature
-│   └── soc2/policy/              # SOC2-specific OPA policies
+│   └── soc2/policy/
+│       ├── hcl/                  # SOC2 policies for HCL
+│       └── cloudformation/       # SOC2 policies for CloudFormation
 ├── domains/                      # Business domain policies
+│   └── */policy/{hcl,cloudformation}/
 ├── workloads/                    # Workload-type policies
+│   └── */policy/{hcl,cloudformation}/
 ├── layers/                       # Infrastructure layer policies
+│   └── */policy/{hcl,cloudformation}/
 └── README.md
 ```
+
+## Multi-IaC Support
+
+Policies are organized by **input format** to support both Terraform/HCL and CloudFormation templates:
+
+| Directory | Input Structure | Use With |
+|-----------|----------------|----------|
+| `*/policy/hcl/` | `input.resource.aws_*[name]` | Terraform, OpenTofu, Terragrunt (via conftest) |
+| `*/policy/cloudformation/` | `input.Resources[name].Properties` | AWS CloudFormation, SAM, CDK (synth output) |
+
+### Key Differences
+
+| Aspect | HCL Policies | CloudFormation Policies |
+|--------|--------------|------------------------|
+| Root key | `input.resource` | `input.Resources` |
+| Resource type | `aws_s3_bucket` (snake_case) | `AWS::S3::Bucket` (colon-separated) |
+| Properties | `storage_encrypted` | `StorageEncrypted` (PascalCase) |
+| Tags | `{"Key": "value"}` map | `[{"Key": "k", "Value": "v"}]` array |
 
 ## Quick Start
 
@@ -126,13 +154,15 @@ thothctl scan iac -t terraform-compliance
 
 ## OPA/Rego Policies (`shared/policy/`)
 
-Policies use [OPA Rego](https://www.openpolicyagent.org/docs/latest/policy-language/):
+Policies use [OPA Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) and are split by input format:
+
+### HCL (Terraform/OpenTofu)
 
 ```rego
-# shared/policy/tagging.rego
+# shared/policy/hcl/tagging.rego
 package main
 
-required_tags := {"Environment", "Owner", "Project"}
+required_tags := {"Environment", "Owner", "CostCenter", "ManagedBy"}
 
 deny[msg] {
     resource := input.resource[type][name]
@@ -143,15 +173,36 @@ deny[msg] {
 }
 ```
 
+### CloudFormation
+
+```rego
+# shared/policy/cloudformation/tagging.rego
+package main
+
+required_tags := {"Environment", "Owner", "CostCenter", "ManagedBy"}
+
+deny[msg] {
+    resource := input.Resources[name]
+    tags := object.get(resource.Properties, "Tags", [])
+    tag_keys := {tag.Key | tag := tags[_]}
+    missing := required_tags - tag_keys
+    count(missing) > 0
+    msg := sprintf("%s (%s) is missing required tags: %v", [name, resource.Type, missing])
+}
+```
+
 ### Usage
 
 ```bash
-# Auto-discovers shared/policy/ from THOTH_ORG_POLICY
+# Terraform/HCL — uses hcl/ policies
+thothctl scan iac -t opa -o "policy_dir=shared/policy/hcl"
+
+# CloudFormation — uses cloudformation/ policies
+conftest test template.yaml --policy shared/policy/cloudformation
+
+# Auto-discovers from THOTH_ORG_POLICY (defaults to hcl/)
 export THOTH_ORG_POLICY=https://github.com/thothforge/org-iac-policies.git
 thothctl scan iac -t opa
-
-# Or explicit
-thothctl scan iac -t opa -o "policy_dir=https://github.com/thothforge/org-iac-policies.git"
 ```
 
 ## CI/CD Integration

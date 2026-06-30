@@ -1,0 +1,27 @@
+[space]
+name = "/home/labvel/projects/tools/ThothForge/org-iac-policies"
+version = "1.0.0"
+
+[credentials]
+path = "credentials"
+
+[configurations]
+path = "configs"
+
+[templates]
+path = "templates"
+
+[version_control]
+path = "vcs"
+default_provider = "github"
+providers = [ "azure_repos", "github", "gitlab",]
+
+[terraform]
+path = "terraform"
+registry_url = "https://registry.terraform.io"
+auth_method = "none"
+
+[orchestration]
+path = "orchestration"
+default_tool = "terragrunt"
+tools = [ "terragrunt", "terramate", "none",]

@@ -1,0 +1,8 @@
+provider = "github"
+
+[settings]
+organization = ""
+project = ""
+repository = ""
+branch = "main"
+auth_method = "pat"

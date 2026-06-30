@@ -1,0 +1,13 @@
+[registry]
+url = "https://registry.terraform.io"
+auth_method = "none"
+token_env_var = ""
+token = ""
+
+[providers.aws]
+version = "~> 4.0"
+source = "hashicorp/aws"
+
+[providers.azure]
+version = "~> 3.0"
+source = "hashicorp/azurerm"
