@@ -1,7 +1,9 @@
 package main
 
+import rego.v1
+
 # S3 buckets must have encryption
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::S3::Bucket"
     not resource.Properties.BucketEncryption
@@ -9,7 +11,7 @@ deny[msg] {
 }
 
 # RDS instances must have encryption at rest
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::RDS::DBInstance"
     not resource.Properties.StorageEncrypted
@@ -17,7 +19,7 @@ deny[msg] {
 }
 
 # EBS volumes must be encrypted
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::EC2::Volume"
     not resource.Properties.Encrypted

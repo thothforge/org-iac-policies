@@ -1,7 +1,9 @@
 package main
 
+import rego.v1
+
 # SOC2 CC6.1 - No public access to storage
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::S3::Bucket"
     resource.Properties.AccessControl == "PublicRead"
@@ -9,7 +11,7 @@ deny[msg] {
 }
 
 # SOC2 CC6.6 - Encryption of data at rest
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::RDS::DBInstance"
     not resource.Properties.StorageEncrypted
@@ -17,12 +19,12 @@ deny[msg] {
 }
 
 # SOC2 CC7.2 - CloudTrail must be enabled
-deny[msg] {
+deny contains msg if {
     not has_cloudtrail
     msg := "[SOC2-CC7.2] CloudTrail must be enabled for audit logging"
 }
 
-has_cloudtrail {
+has_cloudtrail if {
     resource := input.Resources[_]
     resource.Type == "AWS::CloudTrail::Trail"
 }

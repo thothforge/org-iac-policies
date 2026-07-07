@@ -1,15 +1,17 @@
 # layers/networking/policy/vpc.rego
 package main
 
+import rego.v1
+
 # VPC must have flow logs enabled
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_vpc[name]
     not input.resource.aws_flow_log
     msg := sprintf("VPC '%s' must have flow logs enabled", [name])
 }
 
 # Security groups must not allow unrestricted ingress
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_security_group_rule[name]
     resource.type == "ingress"
     resource.cidr_blocks[_] == "0.0.0.0/0"
@@ -19,7 +21,7 @@ deny[msg] {
 }
 
 # No public subnets in production
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_subnet[name]
     resource.map_public_ip_on_launch == true
     contains(name, "prd")

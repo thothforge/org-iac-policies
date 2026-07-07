@@ -1,7 +1,9 @@
 package main
 
+import rego.v1
+
 # RDS must have multi-AZ in production
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::RDS::DBInstance"
     contains(lower(name), "prd")
@@ -10,7 +12,7 @@ deny[msg] {
 }
 
 # RDS must have backup retention >= 7 days
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::RDS::DBInstance"
     resource.Properties.BackupRetentionPeriod < 7
@@ -18,7 +20,7 @@ deny[msg] {
 }
 
 # RDS must not be publicly accessible
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::RDS::DBInstance"
     resource.Properties.PubliclyAccessible == true

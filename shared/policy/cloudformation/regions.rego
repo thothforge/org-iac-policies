@@ -1,8 +1,10 @@
 package main
 
+import rego.v1
+
 allowed_regions := {"us-east-1", "us-east-2", "us-west-2", "eu-west-1"}
 
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::EC2::Instance"
     resource.Properties.AvailabilityZone

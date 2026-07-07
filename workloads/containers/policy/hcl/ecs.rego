@@ -1,8 +1,10 @@
 # workloads/containers/policy/ecs.rego
 package main
 
+import rego.v1
+
 # ECS tasks must not run as root
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_ecs_task_definition[name]
     container := resource.container_definitions[_]
     container.user == "root"
@@ -10,7 +12,7 @@ deny[msg] {
 }
 
 # ECS tasks must have logging configured
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_ecs_task_definition[name]
     container := resource.container_definitions[_]
     not container.logConfiguration

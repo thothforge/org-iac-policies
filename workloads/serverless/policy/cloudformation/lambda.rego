@@ -1,7 +1,9 @@
 package main
 
+import rego.v1
+
 # Lambda functions must have a timeout set
-warn[msg] {
+warn contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::Lambda::Function"
     not resource.Properties.Timeout
@@ -9,7 +11,7 @@ warn[msg] {
 }
 
 # Lambda functions must have dead letter queue
-warn[msg] {
+warn contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::Lambda::Function"
     not resource.Properties.DeadLetterConfig

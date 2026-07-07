@@ -1,8 +1,10 @@
 # layers/security/policy/iam.rego
 package main
 
+import rego.v1
+
 # No wildcard actions in IAM policies
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_iam_policy[name]
     statement := resource.policy.Statement[_]
     statement.Effect == "Allow"
@@ -11,7 +13,7 @@ deny[msg] {
 }
 
 # No wildcard resources in IAM policies
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_iam_policy[name]
     statement := resource.policy.Statement[_]
     statement.Effect == "Allow"

@@ -1,27 +1,29 @@
 package main
 
+import rego.v1
+
 # VPC must have flow logs enabled
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::EC2::VPC"
     not has_flow_log(name)
     msg := sprintf("VPC '%s' must have flow logs enabled", [name])
 }
 
-has_flow_log(vpc_name) {
+has_flow_log(vpc_name) if {
     resource := input.Resources[_]
     resource.Type == "AWS::EC2::FlowLog"
     resource.Properties.ResourceId.Ref == vpc_name
 }
 
-has_flow_log(vpc_name) {
+has_flow_log(vpc_name) if {
     resource := input.Resources[_]
     resource.Type == "AWS::EC2::FlowLog"
     resource.Properties.ResourceId == vpc_name
 }
 
 # Security groups must not allow unrestricted ingress
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::EC2::SecurityGroup"
     ingress := resource.Properties.SecurityGroupIngress[_]
@@ -32,7 +34,7 @@ deny[msg] {
 }
 
 # No public subnets in production
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::EC2::Subnet"
     resource.Properties.MapPublicIpOnLaunch == true

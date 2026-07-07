@@ -1,7 +1,9 @@
 package main
 
+import rego.v1
+
 # No wildcard actions in IAM policies
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::IAM::Policy"
     statement := resource.Properties.PolicyDocument.Statement[_]
@@ -12,7 +14,7 @@ deny[msg] {
 }
 
 # No wildcard actions in IAM managed policies
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::IAM::ManagedPolicy"
     statement := resource.Properties.PolicyDocument.Statement[_]
@@ -23,7 +25,7 @@ deny[msg] {
 }
 
 # No wildcard resources in IAM policies
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::IAM::Policy"
     statement := resource.Properties.PolicyDocument.Statement[_]
@@ -35,7 +37,7 @@ deny[msg] {
 }
 
 # No wildcard resources in IAM managed policies
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::IAM::ManagedPolicy"
     statement := resource.Properties.PolicyDocument.Statement[_]
@@ -47,7 +49,7 @@ deny[msg] {
 }
 
 # IAM roles must have a permissions boundary
-warn[msg] {
+warn contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::IAM::Role"
     not resource.Properties.PermissionsBoundary

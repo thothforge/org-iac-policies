@@ -1,7 +1,9 @@
 package main
 
+import rego.v1
+
 # Platform: Nested stacks must use versioned template URLs (no "latest" or unversioned)
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::CloudFormation::Stack"
     url := resource.Properties.TemplateURL
@@ -11,7 +13,7 @@ deny[msg] {
 }
 
 # Platform: Nested stacks must not use hardcoded parameter values for environment-specific settings
-warn[msg] {
+warn contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::CloudFormation::Stack"
     params := resource.Properties.Parameters
@@ -22,7 +24,7 @@ warn[msg] {
 }
 
 # Platform: All stacks must have tags for ownership
-deny[msg] {
+deny contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::CloudFormation::Stack"
     tags := object.get(resource.Properties, "Tags", [])
@@ -32,7 +34,7 @@ deny[msg] {
 }
 
 # Platform: Stacks must enable termination protection via NotificationARNs or tags
-warn[msg] {
+warn contains msg if {
     resource := input.Resources[name]
     resource.Type == "AWS::CloudFormation::Stack"
     contains(lower(name), "prd")

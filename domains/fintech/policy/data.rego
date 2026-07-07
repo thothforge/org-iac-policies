@@ -1,8 +1,10 @@
 # domains/fintech/policy/data.rego
 package main
 
+import rego.v1
+
 # Fintech: All data stores must have encryption with CMK (not AWS-managed key)
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_s3_bucket[name]
     sse := resource.server_side_encryption_configuration
     rule := sse.rule[_]
@@ -11,7 +13,7 @@ deny[msg] {
 }
 
 # Fintech: No cross-region replication to non-approved regions
-deny[msg] {
+deny contains msg if {
     resource := input.resource.aws_s3_bucket_replication_configuration[name]
     rule := resource.rule[_]
     dest_region := rule.destination.bucket

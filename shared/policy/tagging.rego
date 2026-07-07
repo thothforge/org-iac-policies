@@ -1,9 +1,11 @@
 # shared/policy/tagging.rego
 package main
 
+import rego.v1
+
 required_tags := {"Environment", "Owner", "CostCenter", "ManagedBy"}
 
-deny[msg] {
+deny contains msg if {
     resource := input.resource[type][name]
     tags := object.get(resource, "tags", {})
     missing := required_tags - {key | tags[key]}
