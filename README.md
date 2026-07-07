@@ -341,6 +341,108 @@ When using `thothctl scan iac -t opa`, policies are resolved in this order:
 4. `domains/<domain>/policy/hcl/*.rego` — Matches business domain
 5. `compliance/<framework>/policy/hcl/*.rego` — Per compliance framework
 
+## Policy Parameterization (config.yaml)
+
+Policies use `config.yaml` files to externalize parameters, enabling scalability across teams, environments, and domains without duplicating Rego code.
+
+### How It Works
+
+Place a `config.yaml` alongside your `.rego` files. ThothCTL's OPA scanner auto-converts it to JSON and passes it as `--data` to conftest. Policies access values via `data.config.*`.
+
+```
+shared/policy/hcl/
+├── config.yaml       ← Parameters (YAML)
+├── tagging.rego      ← References data.config.required_tags
+├── regions.rego      ← References data.config.allowed_regions
+└── naming.rego       ← References data.config.naming_pattern
+```
+
+### config.yaml Example
+
+```yaml
+# Organization-wide policy parameters
+required_tags:
+  - Environment
+  - Owner
+  - CostCenter
+  - ManagedBy
+
+allowed_regions:
+  - us-east-1
+  - us-east-2
+  - us-west-2
+  - eu-west-1
+
+naming_pattern: "^(dev|stg|prd)-[a-z]+-[a-z0-9-]+$"
+
+production_patterns:
+  - "prd"
+  - "prod"
+
+rds:
+  min_backup_retention_days: 7
+  require_multi_az_in_prod: true
+  allowed_instance_classes:
+    - db.t3.medium
+    - db.r5.large
+    - db.r6g.large
+```
+
+### Rego Policy Referencing Parameters
+
+```rego
+package main
+
+# Load from config.yaml, with sensible defaults as fallback
+default_required_tags := {"Environment", "Owner"}
+
+required_tags := {t | t := data.config.required_tags[_]} {
+    data.config.required_tags
+}
+
+required_tags := default_required_tags {
+    not data.config.required_tags
+}
+
+deny[msg] {
+    resource := input.resource[type][name]
+    tags := object.get(resource, "tags", {})
+    missing := required_tags - {key | tags[key]}
+    count(missing) > 0
+    msg := sprintf("%s.%s is missing required tags: %v", [type, name, missing])
+}
+```
+
+### Override per Environment/Team
+
+Projects can override organization defaults by placing their own `config.yaml` in their local `policy/` directory:
+
+```yaml
+# my-project/policy/config.yaml — overrides org defaults
+required_tags:
+  - Environment
+  - Owner
+  - CostCenter
+  - ManagedBy
+  - DataClassification    # Extra tag for this team
+
+allowed_regions:
+  - eu-west-1             # This team only deploys to EU
+  - eu-central-1
+
+rds:
+  min_backup_retention_days: 14  # Stricter for this project
+```
+
+### Benefits
+
+| Before (hardcoded) | After (parameterized) |
+|--------------------|-----------------------|
+| Edit Rego to change a tag | Edit YAML, no Rego changes |
+| Duplicate policies per team | One policy, many configs |
+| Review Rego PRs for simple value changes | YAML changes are self-evident |
+| Can't override per-project | Projects override with local config.yaml |
+
 ## Writing New Policies
 
 When adding a new policy, create both HCL and CloudFormation versions:

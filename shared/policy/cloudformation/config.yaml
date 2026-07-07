@@ -1,0 +1,56 @@
+# Organization Policy Parameters (CloudFormation)
+# Same parameters as HCL config but applied to CloudFormation input structure
+
+# ── Tagging ─────────────────────────────────────────────────────────────────
+required_tags:
+  - Environment
+  - Owner
+  - CostCenter
+  - ManagedBy
+
+recommended_tags:
+  - Project
+  - Team
+  - DataClassification
+
+# ── Regions ─────────────────────────────────────────────────────────────────
+allowed_regions:
+  - us-east-1
+  - us-east-2
+  - us-west-2
+  - eu-west-1
+
+# ── Naming Conventions ──────────────────────────────────────────────────────
+naming_pattern: "^(Dev|Stg|Prd)[A-Z][a-zA-Z0-9]+$"
+naming_description: "{Env}{ServiceName}"
+
+production_patterns:
+  - "Prd"
+  - "Prod"
+  - "Production"
+
+# ── Database Policies ───────────────────────────────────────────────────────
+rds:
+  min_backup_retention_days: 7
+  require_multi_az_in_prod: true
+  require_encryption: true
+  allow_public_access: false
+
+# ── Networking ──────────────────────────────────────────────────────────────
+networking:
+  require_flow_logs: true
+  deny_unrestricted_ingress: true
+  allowed_ingress_ports:
+    - 443
+    - 80
+
+# ── Encryption ──────────────────────────────────────────────────────────────
+encryption:
+  require_s3_encryption: true
+  require_rds_encryption: true
+  require_ebs_encryption: true
+
+# ── Compliance ──────────────────────────────────────────────────────────────
+compliance:
+  require_cloudtrail: true
+  deny_public_storage: true

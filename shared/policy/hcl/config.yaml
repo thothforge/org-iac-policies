@@ -1,0 +1,90 @@
+# Organization Policy Parameters
+# These values are loaded by conftest as data and referenced in Rego policies
+# via `data.config.<key>`. Override per-environment by placing a config.yaml
+# in the project's own policy/ directory.
+
+# ── Tagging ─────────────────────────────────────────────────────────────────
+required_tags:
+  - Environment
+  - Owner
+  - CostCenter
+  - ManagedBy
+
+# Optional: recommended tags (warn, not deny)
+recommended_tags:
+  - Project
+  - Team
+  - DataClassification
+
+# ── Regions ─────────────────────────────────────────────────────────────────
+allowed_regions:
+  - us-east-1
+  - us-east-2
+  - us-west-2
+  - eu-west-1
+
+# ── Naming Conventions ──────────────────────────────────────────────────────
+naming_pattern: "^(dev|stg|prd)-[a-z]+-[a-z0-9-]+$"
+naming_description: "{env}-{service}-{name}"
+
+# Patterns that identify production resources (used for stricter rules)
+production_patterns:
+  - "prd"
+  - "prod"
+  - "production"
+
+# ── Database Policies ───────────────────────────────────────────────────────
+rds:
+  min_backup_retention_days: 7
+  require_multi_az_in_prod: true
+  require_encryption: true
+  allow_public_access: false
+  allowed_instance_classes:
+    - db.t3.medium
+    - db.t3.large
+    - db.r5.large
+    - db.r5.xlarge
+    - db.r6g.large
+    - db.r6g.xlarge
+
+# ── Networking Policies ─────────────────────────────────────────────────────
+networking:
+  require_flow_logs: true
+  deny_unrestricted_ingress: true
+  deny_public_subnets_in_prod: true
+  allowed_ingress_ports:
+    - 443
+    - 80
+
+# ── Encryption Policies ─────────────────────────────────────────────────────
+encryption:
+  require_s3_encryption: true
+  require_rds_encryption: true
+  require_ebs_encryption: true
+  allowed_kms_key_types:
+    - aws/s3
+    - aws/rds
+    - aws/ebs
+
+# ── Serverless Policies ─────────────────────────────────────────────────────
+lambda:
+  require_timeout: true
+  max_timeout_seconds: 900
+  require_dlq: true
+  max_memory_mb: 3008
+
+# ── Container Policies ──────────────────────────────────────────────────────
+ecs:
+  deny_root_user: true
+  require_logging: true
+  min_tasks_in_prod: 2
+  require_fargate: false
+
+# ── Compliance ──────────────────────────────────────────────────────────────
+compliance:
+  frameworks:
+    - SOC2
+    - CIS
+  require_cloudtrail: true
+  require_encryption_at_rest: true
+  deny_public_storage: true
