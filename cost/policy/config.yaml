@@ -1,0 +1,29 @@
+# Cost Policy Parameters
+# Thresholds and rules for cost enforcement
+
+budget:
+  max_monthly_total: 5000          # Deny if total exceeds this
+  max_monthly_increase: 500        # Deny if cost increase exceeds this
+  warn_monthly_total: 2000         # Warn if total exceeds this
+  expensive_resource_threshold: 200 # Warn on resources costing more than this/month
+
+instance_types:
+  # Blocked instance types (too expensive for standard use)
+  blocked:
+    - p4d.24xlarge
+    - p3.16xlarge
+    - x2idn.metal
+    - u-6tb1.metal
+    - u-9tb1.metal
+    - u-12tb1.metal
+  # Recommended alternatives
+  recommended:
+    compute: ["t3.medium", "t3.large", "m6i.large", "m6i.xlarge"]
+    database: ["db.t3.medium", "db.t3.large", "db.r6g.large", "db.r6g.xlarge"]
+
+services:
+  # Maximum allowed monthly cost per service
+  max_per_service:
+    EC2: 2000
+    RDS: 1500
+    EKS: 1000
