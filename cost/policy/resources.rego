@@ -8,9 +8,9 @@ import rego.v1
 
 # Warn on individual resources exceeding cost threshold
 warn contains msg if {
-    data.config.budget.expensive_resource_threshold
+    data.budget.expensive_resource_threshold
     resource := input.resources[_]
-    resource.monthly_cost > data.config.budget.expensive_resource_threshold
+    resource.monthly_cost > data.budget.expensive_resource_threshold
     msg := sprintf("Resource '%s' (%s) costs $%.2f/month — review for optimization", [
         resource.address, resource.service, resource.monthly_cost,
     ])
@@ -20,11 +20,11 @@ warn contains msg if {
 
 # Deny blocked instance types
 deny contains msg if {
-    data.config.instance_types.blocked
+    data.instance_types.blocked
     resource := input.resources[_]
     resource.type == "aws_instance"
     instance_type := resource.details.instance_type
-    instance_type in data.config.instance_types.blocked
+    instance_type in data.instance_types.blocked
     msg := sprintf("Instance type '%s' is blocked by cost policy (resource: %s)", [
         instance_type, resource.address,
     ])
@@ -32,11 +32,11 @@ deny contains msg if {
 
 # Deny blocked RDS instance classes
 deny contains msg if {
-    data.config.instance_types.blocked
+    data.instance_types.blocked
     resource := input.resources[_]
     resource.type in ["aws_db_instance", "aws_rds_cluster_instance"]
     instance_class := resource.details.instance_class
-    instance_class in data.config.instance_types.blocked
+    instance_class in data.instance_types.blocked
     msg := sprintf("RDS instance class '%s' is blocked by cost policy (resource: %s)", [
         instance_class, resource.address,
     ])
